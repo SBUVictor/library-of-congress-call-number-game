@@ -5,6 +5,7 @@ const assert = require("assert");
 
 const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+let fetchCalls = 0;
 
 function fakeElement() {
   return {
@@ -27,7 +28,10 @@ function fakeElement() {
 
 const context = vm.createContext({
   console,
-  fetch: async () => ({}),
+  fetch: async () => {
+    fetchCalls += 1;
+    return {};
+  },
   document: {
     createElement: fakeElement,
     getElementById: fakeElement,
@@ -39,11 +43,17 @@ vm.runInContext(`${script}
 globalThis.__game = {
   buildPayload,
   buildQuestions,
+  answerQuiz,
+  checkAnswer,
   compareCallNumbers,
   finalLabels,
   finishGame,
+  goCheck,
+  goQuiz,
+  goWorked,
   sortKey,
   renderFinal,
+  submitResults,
   setState(value) { state = value; },
   getState() { return state; }
 };`, context);
@@ -73,9 +83,50 @@ for (const key of ["classes", "numbers", "cutters", "complex"]) {
   }
 }
 assert.throws(() => game.buildQuestions("missing"), /No question factory/);
+assert(html.includes('id="bank" class="sortbank" tabindex="0" role="button"'));
 
 const final = game.finalLabels();
 assert.deepStrictEqual(final, final.slice().sort(game.compareCallNumbers));
+
+game.setState({
+  step: 0,
+  phase: "teach",
+  qIndex: 0,
+  score: 0,
+  questions: {
+    classes: game.buildQuestions("classes")
+  },
+  moduleScores: {
+    classes: 0,
+    numbers: 0,
+    cutters: 0,
+    complex: 0
+  }
+});
+game.answerQuiz(0);
+assert.strictEqual(game.getState().score, 0);
+assert.strictEqual(game.getState().phase, "teach");
+game.goCheck();
+assert.strictEqual(game.getState().phase, "check");
+game.goQuiz();
+assert.strictEqual(game.getState().phase, "check");
+game.checkAnswer(0);
+if (game.getState().phase !== "check-passed") {
+  game.checkAnswer(1);
+}
+assert.strictEqual(game.getState().phase, "check-passed");
+game.goWorked();
+assert.strictEqual(game.getState().phase, "worked");
+game.goCheck();
+assert.strictEqual(game.getState().phase, "worked");
+game.goQuiz();
+assert.strictEqual(game.getState().phase, "quiz");
+const firstQuestion = game.getState().questions.classes[0];
+game.answerQuiz(firstQuestion.answer);
+assert.strictEqual(game.getState().score, 1);
+assert.strictEqual(game.getState().phase, "answered");
+game.answerQuiz(firstQuestion.answer);
+assert.strictEqual(game.getState().score, 1);
 
 game.setState({
   score: 60,
@@ -146,4 +197,31 @@ assert.strictEqual(game.getState().finalPassed, false);
 game.finishGame();
 assert.strictEqual(game.getState().step, 4);
 
-console.log("game logic tests passed");
+game.setState({
+  score: 60,
+  finalPassed: true,
+  submitted: false,
+  submitting: false,
+  student: {
+    realName: "Submit Tester",
+    preferredName: "Submit",
+    email: "submit@stonybrook.edu"
+  },
+  moduleScores: {
+    classes: 15,
+    numbers: 15,
+    cutters: 15,
+    complex: 15
+  }
+});
+
+(async () => {
+  await Promise.all([game.submitResults(), game.submitResults()]);
+  assert.strictEqual(fetchCalls, 1);
+  assert.strictEqual(game.getState().submitted, true);
+  assert.strictEqual(game.getState().submitting, false);
+  console.log("game logic tests passed");
+})().catch(error => {
+  console.error(error);
+  process.exit(1);
+});

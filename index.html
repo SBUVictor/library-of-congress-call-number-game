@@ -786,7 +786,8 @@
         questions: generatedQuestions,
         finalOrder: generatedFinalOrder,
         finalPassed: false,
-        submitted: false
+        submitted: false,
+        submitting: false
       };
       els.app.classList.remove("hidden");
       render();
@@ -838,18 +839,37 @@
         <div id="feedback"></div>`;
     }
 
-    function goCheck() { state.phase = "check"; render(); }
-    function goWorked() { state.phase = "worked"; render(); }
-    function goQuiz() { state.phase = "quiz"; render(); }
+    function goCheck() {
+      if (state.phase !== "teach") return;
+      state.phase = "check";
+      render();
+    }
+
+    function goWorked() {
+      if (state.phase !== "check-passed") return;
+      state.phase = "worked";
+      render();
+    }
+
+    function goQuiz() {
+      if (state.phase !== "worked") return;
+      state.phase = "quiz";
+      render();
+    }
 
     function checkAnswer(choice) {
+      if (state.phase !== "check") return;
       const mod = modules[state.step];
       const correct = choice === mod.check[3];
       document.getElementById("feedback").innerHTML = `<div class="feedback ${correct ? "good" : "bad"}">${correct ? "Right." : "Not quite."} ${mod.check[4]}</div>${correct ? '<button onclick="goWorked()">Continue</button>' : ""}`;
-      if (correct) document.querySelectorAll(".choice").forEach(btn => btn.disabled = true);
+      if (correct) {
+        state.phase = "check-passed";
+        document.querySelectorAll(".choice").forEach(btn => btn.disabled = true);
+      }
     }
 
     function answerQuiz(choice) {
+      if (state.phase !== "quiz") return;
       const mod = modules[state.step];
       const q = state.questions[mod.key][state.qIndex];
       const correct = choice === q.answer;
@@ -915,7 +935,7 @@
           <p>Sort from first to last. Compare class letters, class number, first Cutter, second Cutter, date, then later suffixes. Stop at the first difference.</p>
         </div>
         <h3>Label Bank</h3>
-        <div id="bank" class="sortbank"></div>
+        <div id="bank" class="sortbank" tabindex="0" role="button" aria-label="Return selected label to the label bank"></div>
         <h3>Order Slots</h3>
         <div id="slots" class="sortslots"></div>
         <div id="dragFeedback"></div>
@@ -962,6 +982,15 @@
         });
       });
       bank.addEventListener("dragover", e => e.preventDefault());
+      bank.addEventListener("click", e => {
+        if (selectedDragItem && !e.target.closest(".draggable")) placeSelected(bank);
+      });
+      bank.addEventListener("keydown", e => {
+        if (selectedDragItem && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          placeSelected(bank);
+        }
+      });
       bank.addEventListener("drop", e => {
         e.preventDefault();
         const item = document.getElementById(e.dataTransfer.getData("text/plain"));
@@ -1075,13 +1104,14 @@
       const submitBtn = document.getElementById("submitBtn");
       const payload = buildPayload();
 
-      if (state.submitted) {
+      if (state.submitted || state.submitting) {
         status.innerHTML = `<div class="feedback good">Results already submitted for this run.</div>`;
         return;
       }
 
       status.innerHTML = `<div class="feedback warn">Submitting to the SBU scoreboard and sending the grade email...</div>`;
       if (submitBtn) submitBtn.disabled = true;
+      state.submitting = true;
 
       try {
         await fetch(APP_SCRIPT_URL, {
@@ -1094,8 +1124,10 @@
         });
 
         state.submitted = true;
+        state.submitting = false;
         status.innerHTML = `<div class="feedback good">Results sent. The Apps Script records the row in the SBU scoreboard sheet and sends the grade email.</div>`;
       } catch (error) {
+        state.submitting = false;
         if (submitBtn) submitBtn.disabled = false;
         status.innerHTML = `<div class="feedback bad">Submission failed: ${escapeHtml(error && error.message ? error.message : error)}</div>`;
       }
