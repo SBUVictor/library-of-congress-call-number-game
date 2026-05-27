@@ -548,8 +548,9 @@
       return String(callNumber).trim().split(/\s+/).filter(Boolean);
     }
 
-    function parseCutter(token) {
-      const match = /^\.([A-Z])(\d+)$/i.exec(token || "");
+    function parseCutter(token, options = {}) {
+      const pattern = options.allowNoDot ? /^\.?([A-Z])(\d+)$/i : /^\.([A-Z])(\d+)$/i;
+      const match = pattern.exec(token || "");
       if (!match) return null;
       return {
         letter: match[1].toUpperCase(),
@@ -564,6 +565,19 @@
       const year = /^(\d{4})([a-z]?)$/i.exec(token || "");
       if (year) return ["year", Number(year[1]), year[2].toLowerCase()];
       return [String(token).toLowerCase()];
+    }
+
+    function cutterSortValues(cutterValue) {
+      return [
+        cutterValue.letter,
+        cutterValue.decimal,
+        cutterValue.digits.length,
+        cutterValue.digits
+      ];
+    }
+
+    function compareCutterTokens(a, b) {
+      return compareArrays(cutterSortValues(parseCutter(a, { allowNoDot: true })), cutterSortValues(parseCutter(b, { allowNoDot: true })));
     }
 
     function compareValues(a, b) {
@@ -589,9 +603,9 @@
       key.push(Number(tokens[1]));
       let index = 2;
       while (index < tokens.length) {
-        const c = parseCutter(tokens[index]);
+        const c = parseCutter(tokens[index], { allowNoDot: index > 2 });
         if (!c) break;
-        key.push(c.letter, c.decimal);
+        key.push(...cutterSortValues(c));
         index += 1;
       }
       for (; index < tokens.length; index++) {
@@ -649,7 +663,7 @@
         first = cutter(letters[0]);
         second = cutter(letters[1]);
       }
-      const ordered = [first, second].sort((a, b) => compareArrays([parseCutter(a).letter, parseCutter(a).decimal], [parseCutter(b).letter, parseCutter(b).decimal]));
+      const ordered = [first, second].sort(compareCutterTokens);
       return question(
         makeLabel({ klass, number, cutter1: ordered[0] }),
         makeLabel({ klass, number, cutter1: ordered[1] }),
@@ -714,10 +728,10 @@
 
     function finalLabels() {
       const labels = [
-        makeLabel({ klass: "B", number: "105", cutter1: ".A45", suffix: ["2018"] }),
-        makeLabel({ klass: "BF", number: "76.3", cutter1: ".C37", suffix: ["2020"] }),
-        makeLabel({ klass: "HD", number: "30.28", cutter1: ".M37", suffix: ["2011"] }),
-        makeLabel({ klass: "HD", number: "30.3", cutter1: ".A55", suffix: ["2008"] }),
+        makeLabel({ klass: "B", number: "105", cutter1: ".A45", cutter2: false, suffix: ["2018"] }),
+        makeLabel({ klass: "BF", number: "76.3", cutter1: ".C37", cutter2: false, suffix: ["2020"] }),
+        makeLabel({ klass: "HD", number: "30.28", cutter1: ".M37", cutter2: false, suffix: ["2011"] }),
+        makeLabel({ klass: "HD", number: "30.3", cutter1: ".A55", cutter2: false, suffix: ["2008"] }),
         makeLabel({ klass: "QA", number: "76.73", cutter1: ".J38", cutter2: ".B76", suffix: ["2021", "v.1"] }),
         makeLabel({ klass: "QA", number: "76.73", cutter1: ".J38", cutter2: ".B76", suffix: ["2021", "v.2"] })
       ];
@@ -825,16 +839,20 @@
         state.score += 1;
         state.moduleScores[mod.key] += 1;
       }
+      state.phase = "answered";
       document.getElementById("feedback").innerHTML = `<div class="feedback ${correct ? "good" : "bad"}">${correct ? "Right." : "Not quite."} ${q.explanation}</div><button onclick="nextQuestion()">Continue</button>`;
       document.querySelectorAll(".choice").forEach(btn => btn.disabled = true);
     }
 
     function nextQuestion() {
+      if (state.phase !== "answered") return;
       state.qIndex += 1;
       if (state.qIndex >= QUESTIONS_PER_MODULE) {
         state.step += 1;
         state.phase = "teach";
         state.qIndex = 0;
+      } else {
+        state.phase = "quiz";
       }
       render();
     }

@@ -41,6 +41,12 @@ server.
 
 The browser game is static: HTML, CSS, and vanilla JavaScript only.
 
+Run the logic regression tests with:
+
+```sh
+node tests/game-logic.test.js
+```
+
 ## Scoreboard And Email
 
 The frontend posts to the same Apps Script web app used by the SBU training
