@@ -41,8 +41,11 @@ globalThis.__game = {
   buildQuestions,
   compareCallNumbers,
   finalLabels,
+  finishGame,
   sortKey,
-  setState(value) { state = value; }
+  renderFinal,
+  setState(value) { state = value; },
+  getState() { return state; }
 };`, context);
 
 const game = context.__game;
@@ -69,6 +72,7 @@ for (const key of ["classes", "numbers", "cutters", "complex"]) {
     }
   }
 }
+assert.throws(() => game.buildQuestions("missing"), /No question factory/);
 
 const final = game.finalLabels();
 assert.deepStrictEqual(final, final.slice().sort(game.compareCallNumbers));
@@ -95,5 +99,51 @@ assert.strictEqual(payload.passFail, "Pass");
 assert.strictEqual(payload.sbuEmail, "test@stonybrook.edu");
 assert.strictEqual(payload.totalModulesCompleted, 4);
 assert.strictEqual(payload.totalModulesPassed, 4);
+
+game.setState({
+  score: 44,
+  finalPassed: false,
+  student: {
+    realName: "Needs Review",
+    preferredName: "Review",
+    email: "review@stonybrook.edu"
+  },
+  moduleScores: {
+    classes: 11,
+    numbers: 10,
+    cutters: 15,
+    complex: 8
+  }
+});
+
+const failingPayload = game.buildPayload();
+assert.strictEqual(failingPayload.totalScore, 44);
+assert.strictEqual(failingPayload.passFail, "Fail");
+assert.strictEqual(failingPayload.totalModulesPassed, 2);
+assert.strictEqual(failingPayload.cumulativeCheckPassed, false);
+assert.strictEqual(failingPayload.finalDragDropPassed, false);
+
+game.setState({
+  step: 4,
+  phase: "final",
+  finalPassed: true,
+  finalOrder: final,
+  student: {
+    realName: "Final Tester",
+    preferredName: "Final",
+    email: "final@stonybrook.edu"
+  },
+  moduleScores: {
+    classes: 15,
+    numbers: 15,
+    cutters: 15,
+    complex: 15
+  }
+});
+game.renderFinal();
+assert.strictEqual(game.getState().phase, "final");
+assert.strictEqual(game.getState().finalPassed, false);
+game.finishGame();
+assert.strictEqual(game.getState().step, 4);
 
 console.log("game logic tests passed");

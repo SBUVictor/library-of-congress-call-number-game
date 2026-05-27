@@ -713,15 +713,24 @@
         cutters: cutterQuestion,
         complex: complexQuestion
       }[key];
+      if (!factory) {
+        throw new Error(`No question factory exists for ${key}.`);
+      }
       const questions = [];
       const seen = new Set();
-      while (questions.length < QUESTIONS_PER_MODULE) {
+      let attempts = 0;
+      const maxAttempts = QUESTIONS_PER_MODULE * 100;
+      while (questions.length < QUESTIONS_PER_MODULE && attempts < maxAttempts) {
+        attempts += 1;
         const q = factory();
         const id = q.choices.slice().sort().join("|");
         if (!seen.has(id)) {
           seen.add(id);
           questions.push(q);
         }
+      }
+      if (questions.length < QUESTIONS_PER_MODULE) {
+        throw new Error(`Could not build enough unique ${key} questions.`);
       }
       return questions;
     }
@@ -754,6 +763,15 @@
         return;
       }
       els.intakeFeedback.innerHTML = "";
+      let generatedQuestions;
+      let generatedFinalOrder;
+      try {
+        generatedQuestions = Object.fromEntries(modules.map(m => [m.key, buildQuestions(m.key)]));
+        generatedFinalOrder = finalLabels();
+      } catch (error) {
+        els.intakeFeedback.innerHTML = `<div class="feedback bad">The game could not prepare questions. Please refresh and try again.</div>`;
+        return;
+      }
       state = {
         step: 0,
         phase: "teach",
@@ -765,8 +783,8 @@
           email: els.email.value.trim().toLowerCase()
         },
         moduleScores: { classes: 0, numbers: 0, cutters: 0, complex: 0 },
-        questions: Object.fromEntries(modules.map(m => [m.key, buildQuestions(m.key)])),
-        finalOrder: finalLabels(),
+        questions: generatedQuestions,
+        finalOrder: generatedFinalOrder,
         finalPassed: false,
         submitted: false
       };
@@ -888,6 +906,8 @@
 
     function renderFinal() {
       selectedDragItem = null;
+      state.phase = "final";
+      state.finalPassed = false;
       els.screen.innerHTML = `
         <h2>Final Sort</h2>
         <div class="lesson-box">
@@ -974,18 +994,22 @@
       });
       const feedback = document.getElementById("dragFeedback");
       if (chosen.some(value => !value)) {
+        state.finalPassed = false;
         feedback.innerHTML = `<div class="feedback warn">Place every label before checking.</div>`;
         return;
       }
       const ok = chosen.every((value, index) => value === state.finalOrder[index]);
       state.finalPassed = ok;
+      state.phase = ok ? "final-correct" : "final";
       feedback.innerHTML = ok
         ? `<div class="feedback good">Right. The labels are in LC shelf order.</div><button onclick="finishGame()">Continue</button>`
         : `<div class="feedback bad">Not quite. Keep comparing from the top line down and try again.</div>`;
     }
 
     function finishGame() {
+      if (state.phase !== "final-correct") return;
       state.step += 1;
+      state.phase = "done";
       render();
     }
 
