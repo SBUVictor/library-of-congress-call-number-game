@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stack Order: Library of Congress</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      --bg: #f4f5f3;
+      --panel: #ffffff;
+      --ink: #171717;
+      --muted: #555f66;
+      --line: #c8cfca;
+      --accent: #8a1538;
+      --accent-dark: #5e0f28;
+      --accent-soft: #f7e7ee;
+      --blue: #123c69;
+      --blue-soft: #e4edf6;
+      --good: #164b35;
+      --good-bg: #dceee4;
+      --bad: #7f1d1d;
+      --bad-bg: #f8dddd;
+      --warn: #5b4513;
+      --warn-bg: #fbf0cc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+    }
+
+    h1, h2, h3 { margin-top: 0; line-height: 1.2; }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h2 { font-size: 1.45rem; }
+
+    .version {
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      outline: 3px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 700;
+      min-height: 44px;
+      padding: 11px 15px;
+    }
+
+    button:hover { background: var(--accent-dark); }
+
+    button.secondary {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    button.secondary:hover { background: var(--blue-soft); }
+
+    button.choice {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      text-align: left;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    button.choice:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .62;
+    }
+
+    .hidden { display: none; }
+
+    .pill {
+      display: inline-block;
+      background: var(--blue);
+      border-radius: 999px;
+      color: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin-bottom: 10px;
+      padding: 5px 10px;
+      text-transform: uppercase;
+    }
+
+    .progress {
+      height: 10px;
+      overflow: hidden;
+      background: #e1e5e1;
+      border-radius: 999px;
+      margin: 8px 0 18px;
+    }
+
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width .2s ease;
+    }
+
+    .lesson-box, .check-box, .worked-box {
+      background: #f8f9f7;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 14px 0;
+      padding: 14px;
+    }
+
+    .worked-box { background: #fff; }
+
+    .section-label {
+      color: var(--muted);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .demo-grid, .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .demo-card, .summary-box {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .call {
+      display: inline-block;
+      background: var(--warn-bg);
+      border: 1px solid #e7d99e;
+      border-radius: 6px;
+      font-family: Consolas, "Courier New", monospace;
+      margin: 2px 3px 2px 0;
+      padding: 3px 7px;
+    }
+
+    .call-stack {
+      display: grid;
+      gap: 4px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .96rem;
+      margin: 8px 0;
+    }
+
+    .call-stack span {
+      background: var(--warn-bg);
+      border: 1px solid #e7d99e;
+      border-radius: 6px;
+      padding: 3px 7px;
+      width: fit-content;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent);
+      margin: 12px 0 0;
+      padding-left: 10px;
+    }
+
+    .feedback {
+      border-radius: 8px;
+      font-weight: 700;
+      margin-top: 12px;
+      padding: 12px 14px;
+    }
+
+    .good { background: var(--good-bg); color: var(--good); }
+    .bad { background: var(--bad-bg); color: var(--bad); }
+    .warn { background: var(--warn-bg); color: var(--warn); }
+
+    .sortbank, .sortslots {
+      align-items: stretch;
+      background: #f8f9f7;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      min-height: 82px;
+      padding: 12px;
+    }
+
+    .draggable, .slot {
+      min-width: min(240px, 100%);
+      width: min(270px, 100%);
+    }
+
+    .draggable {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: grab;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .94rem;
+      min-height: 58px;
+      padding: 10px;
+      white-space: pre-line;
+      box-shadow: 0 2px 7px rgba(0, 0, 0, .08);
+    }
+
+    .draggable.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(138, 21, 56, .18);
+    }
+
+    .slot {
+      background: #fff;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      min-height: 86px;
+      padding: 8px;
+    }
+
+    .slotlabel {
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .drag-over {
+      background: var(--blue-soft);
+      border-color: var(--blue);
+    }
+
+    .muted { color: var(--muted); }
+
+    .summary-box .label {
+      color: var(--muted);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .summary-box .value {
+      font-size: 1.08rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: .9rem;
+      padding: 6px 0 18px;
+    }
+
+    @media (max-width: 700px) {
+      .wrap { padding: 12px; }
+      .card { padding: 16px; }
+      h1 { font-size: 1.7rem; }
+      .sortbank, .sortslots { display: grid; }
+      .draggable, .slot { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card" id="introCard">
+      <div class="version">Version 1.0 - Full LC Call Numbers</div>
+      <h1>Stack Order: Library of Congress</h1>
+      <p>This is a separate game based on the Shelf It Right format. It practices complex Library of Congress call-number sorting across the major LC classes, not only music scores.</p>
+      <p>You will compare class letters, class numbers, Cutters, dates, volumes, copies, and suffixes. The examples are training labels, but the order logic follows LC shelving rules used in library stacks.</p>
+      <div class="field-grid">
+        <div>
+          <label for="realName">Real Name</label>
+          <input id="realName" type="text" placeholder="Enter full name" />
+        </div>
+        <div>
+          <label for="preferredName">Preferred Name</label>
+          <input id="preferredName" type="text" placeholder="Enter preferred name" />
+        </div>
+        <div>
+          <label for="email">SBU Email</label>
+          <input id="email" type="email" placeholder="name@stonybrook.edu" />
+        </div>
+      </div>
+      <button id="startBtn" type="button">Start Game</button>
+      <div id="intakeFeedback"></div>
+    </section>
+
+    <main id="app" class="hidden">
+      <section class="card">
+        <div id="stageLabel" class="pill">Module 1</div>
+        <div class="progress"><div id="bar"></div></div>
+        <div id="screen"></div>
+      </section>
+    </main>
+
+    <footer>
+      Sources used for game rules: Library of Congress Classification Outline, LC Classification PDF Files, and LC/PCC Cutter guidance.
+    </footer>
+  </div>
+
+  <script>
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzstvzMlsYEoOWhi1B-aLLdBiwpkeacCGWzaz05BmFdttRNfAE2gd6YwEP9HLCqHgS-/exec";
+    const QUESTIONS_PER_MODULE = 15;
+    const PASSING_PER_MODULE = 11;
+    const FINAL_COUNT = 6;
+
+    const lccClasses = [
+      ["A", "General Works"], ["B", "Philosophy, Psychology, Religion"],
+      ["C", "Auxiliary Sciences of History"], ["D", "World History and History of Europe"],
+      ["E", "History of the Americas"], ["F", "History of the Americas"],
+      ["G", "Geography, Anthropology, Recreation"], ["H", "Social Sciences"],
+      ["J", "Political Science"], ["K", "Law"], ["L", "Education"],
+      ["M", "Music and Books on Music"], ["N", "Fine Arts"], ["P", "Language and Literature"],
+      ["Q", "Science"], ["R", "Medicine"], ["S", "Agriculture"],
+      ["T", "Technology"], ["U", "Military Science"], ["V", "Naval Science"],
+      ["Z", "Bibliography, Library Science, Information Resources"]
+    ];
+
+    const subclassPool = [
+      "A", "AC", "AE", "AM", "AZ",
+      "B", "BC", "BD", "BF", "BJ", "BL", "BM", "BP", "BR", "BS", "BT", "BX",
+      "C", "CB", "CC", "CD", "CE", "CJ", "CN", "CR", "CS", "CT",
+      "D", "DA", "DB", "DC", "DD", "DE", "DF", "DG", "DH", "DJ", "DK", "DL", "DP", "DQ", "DR", "DS", "DT", "DU", "DX",
+      "E", "F",
+      "G", "GA", "GB", "GC", "GE", "GF", "GN", "GR", "GT", "GV",
+      "H", "HA", "HB", "HC", "HD", "HE", "HF", "HG", "HJ", "HM", "HN", "HQ", "HS", "HT", "HV", "HX",
+      "J", "JA", "JC", "JF", "JJ", "JK", "JL", "JN", "JQ", "JS", "JV", "JZ",
+      "K", "KB", "KD", "KE", "KF", "KG", "KH", "KJ", "KK", "KL", "KM", "KN", "KP", "KQ", "KR", "KS", "KT", "KU", "KV", "KZ",
+      "L", "LA", "LB", "LC", "LD", "LE", "LF", "LG", "LH", "LJ", "LT",
+      "M", "ML", "MT",
+      "N", "NA", "NB", "NC", "ND", "NE", "NK", "NX",
+      "P", "PA", "PB", "PC", "PD", "PE", "PF", "PG", "PH", "PJ", "PK", "PL", "PM", "PN", "PQ", "PR", "PS", "PT", "PZ",
+      "Q", "QA", "QB", "QC", "QD", "QE", "QH", "QK", "QL", "QM", "QP", "QR",
+      "R", "RA", "RB", "RC", "RD", "RE", "RF", "RG", "RJ", "RK", "RL", "RM", "RS", "RT", "RV", "RX", "RZ",
+      "S", "SB", "SD", "SF", "SH", "SK",
+      "T", "TA", "TC", "TD", "TE", "TF", "TG", "TH", "TJ", "TK", "TL", "TN", "TP", "TR", "TS", "TT", "TX",
+      "U", "UA", "UB", "UC", "UD", "UE", "UF", "UG", "UH",
+      "V", "VA", "VB", "VC", "VD", "VE", "VF", "VG", "VK", "VM",
+      "Z", "ZA"
+    ];
+
+    const cutterLetters = "ABCDEFGHJKLMNPQRSTUVWXYZ".split("");
+    const titleWords = ["Atlas", "Belief", "Cities", "Design", "Evidence", "Foundations", "Grammar", "Labor", "Methods", "Poems", "Policy", "Robotics", "Theater"];
+    const formats = ["v.", "no.", "pt.", "suppl.", "ser.", "c."];
+
+    const els = {
+      realName: document.getElementById("realName"),
+      preferredName: document.getElementById("preferredName"),
+      email: document.getElementById("email"),
+      intakeFeedback: document.getElementById("intakeFeedback"),
+      startBtn: document.getElementById("startBtn"),
+      app: document.getElementById("app"),
+      screen: document.getElementById("screen"),
+      stageLabel: document.getElementById("stageLabel"),
+      bar: document.getElementById("bar")
+    };
+
+    let state = {};
+    let selectedDragItem = null;
+
+    const modules = [
+      {
+        key: "classes",
+        label: "Module 1",
+        title: "Class Letters and Subclasses",
+        teach: `
+          <div class="section-label">Lesson</div>
+          <p>Library of Congress Classification starts with one or more class letters. Sort them alphabetically before looking at the number. LC uses 21 main classes; I, O, W, X, and Y are not main classes.</p>
+          <div class="demo-grid">
+            <div class="demo-card"><div class="section-label">Earlier</div><div class="call-stack"><span>BF</span><span>637</span><span>.C45</span><span>2020</span></div></div>
+            <div class="demo-card"><div class="section-label">Later</div><div class="call-stack"><span>ML</span><span>410</span><span>.B33</span><span>2018</span></div></div>
+          </div>
+          <p class="note">B comes before M, so <span class="call">BF 637 .C45 2020</span> shelves before the ML item. The class number does not matter until the letters match.</p>
+        `,
+        check: ["Which shelves first?", "QA 76.73 .J38 2021", "PN 1993 .A45 2019", 1, "P comes before Q, so PN shelves before QA."],
+        worked: `<p><span class="call">E 185.61 .D47 2022</span> shelves before <span class="call">F 128.9 .N4 H37 2016</span> because E comes before F.</p>`
+      },
+      {
+        key: "numbers",
+        label: "Module 2",
+        title: "Class Numbers and Decimals",
+        teach: `
+          <div class="section-label">Lesson</div>
+          <p>When the class letters match, compare the class number numerically. Decimals are true decimals: 76.7 comes after 76.55 because .70 is greater than .55.</p>
+          <div class="demo-grid">
+            <div class="demo-card"><div class="section-label">Earlier</div><div class="call-stack"><span>QA</span><span>76.55</span><span>.P98</span><span>2020</span></div></div>
+            <div class="demo-card"><div class="section-label">Later</div><div class="call-stack"><span>QA</span><span>76.7</span><span>.A15</span><span>2010</span></div></div>
+          </div>
+          <p class="note">The subclass QA matches, so 76.55 shelves before 76.7. Do not jump to the Cutter or date.</p>
+        `,
+        check: ["Which shelves first?", "HD 30.28 .M37 2020", "HD 30.3 .A55 2019", 0, "30.28 is less than 30.3."],
+        worked: `<p><span class="call">N 7433.8 .A78 2019</span> comes before <span class="call">N 7433.82 .B66 2015</span> because 7433.8 is less than 7433.82.</p>`
+      },
+      {
+        key: "cutters",
+        label: "Module 3",
+        title: "Cutter Numbers",
+        teach: `
+          <div class="section-label">Lesson</div>
+          <p>A Cutter begins with a dot, a letter, and digits. Compare the letter alphabetically, then compare the digits as a decimal expansion. That means <span class="call">.B3</span> comes before <span class="call">.B34</span>, and <span class="call">.B99</span> still comes before <span class="call">.C1</span>.</p>
+          <div class="demo-grid">
+            <div class="demo-card"><div class="section-label">Earlier</div><div class="call-stack"><span>PS</span><span>3563</span><span>.A4</span><span>2018</span></div></div>
+            <div class="demo-card"><div class="section-label">Later</div><div class="call-stack"><span>PS</span><span>3563</span><span>.A45</span><span>2001</span></div></div>
+          </div>
+          <p class="note">The first different element is the Cutter number. .A4 is read as .4, and .A45 is read as .45, so .A4 shelves first.</p>
+        `,
+        check: ["Which shelves first?", "PR 6039 .O32 1999", "PR 6039 .N99 2021", 1, "N comes before O."],
+        worked: `<p><span class="call">QH 541.5 .M3 2018</span> comes before <span class="call">QH 541.5 .M35 1998</span> because .M3 is less than .M35.</p>`
+      },
+      {
+        key: "complex",
+        label: "Module 4",
+        title: "Second Cutters, Dates, Volumes, Copies",
+        teach: `
+          <div class="section-label">Lesson</div>
+          <p>Many LC call numbers keep going after the first Cutter. If the class letters, class number, and first Cutter match, compare the next Cutter. If those match, compare dates and suffixes such as volume, part, number, supplement, and copy.</p>
+          <div class="demo-grid">
+            <div class="demo-card"><div class="section-label">Earlier</div><div class="call-stack"><span>KF</span><span>4558</span><span>.A7</span><span>B76</span><span>2012</span><span>v.1 c.1</span></div></div>
+            <div class="demo-card"><div class="section-label">Later</div><div class="call-stack"><span>KF</span><span>4558</span><span>.A7</span><span>B76</span><span>2012</span><span>v.2 c.1</span></div></div>
+          </div>
+          <p class="note">Everything matches until volume. Volume 1 shelves before volume 2.</p>
+        `,
+        check: ["Which shelves first?", "RC 280 .B8 H37 2018 v.2", "RC 280 .B8 H37 2018 v.10", 0, "The shared call number reaches volume; v.2 comes before v.10."],
+        worked: `<p><span class="call">Z 699 .A1 M37 2008 c.1</span> comes before <span class="call">Z 699 .A1 M37 2008 c.2</span> because copy 1 comes before copy 2.</p>`
+      }
+    ];
+
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pick(items) {
+      return items[randInt(0, items.length - 1)];
+    }
+
+    function shuffle(items) {
+      const copy = items.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = randInt(0, i);
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function randomClass() {
+      return pick(subclassPool);
+    }
+
+    function classNumber() {
+      const whole = randInt(1, 9999);
+      if (Math.random() < .42) {
+        const decimals = randInt(1, 3);
+        let frac = "";
+        for (let i = 0; i < decimals; i++) frac += String(randInt(0, 9));
+        return `${whole}.${frac}`;
+      }
+      return String(whole);
+    }
+
+    function cutter(letter) {
+      const digits = String(randInt(2, 999));
+      return `.${letter || pick(cutterLetters)}${digits}`;
+    }
+
+    function suffixes() {
+      const year = String(randInt(1940, 2026));
+      const tail = [year];
+      const count = randInt(0, 2);
+      for (let i = 0; i < count; i++) tail.push(`${pick(formats)}${randInt(1, 12)}`);
+      if (Math.random() < .22) tail.push(pick(titleWords));
+      return tail;
+    }
+
+    function makeLabel(parts = {}) {
+      const tokens = [
+        parts.klass || randomClass(),
+        parts.number || classNumber(),
+        parts.cutter1 || cutter()
+      ];
+      if (parts.cutter2 !== false) tokens.push(parts.cutter2 || (Math.random() < .45 ? cutter() : null));
+      return tokens.filter(Boolean).concat(parts.suffix || suffixes()).join(" ");
+    }
+
+    function tokenize(callNumber) {
+      return String(callNumber).trim().split(/\s+/).filter(Boolean);
+    }
+
+    function parseCutter(token) {
+      const match = /^\.([A-Z])(\d+)$/i.exec(token || "");
+      if (!match) return null;
+      return {
+        letter: match[1].toUpperCase(),
+        decimal: Number("0." + match[2]),
+        digits: match[2]
+      };
+    }
+
+    function parseSuffix(token) {
+      const match = /^([A-Za-z.]+)(\d+)$/i.exec(token || "");
+      if (match) return [match[1].toLowerCase(), Number(match[2])];
+      const year = /^(\d{4})([a-z]?)$/i.exec(token || "");
+      if (year) return ["year", Number(year[1]), year[2].toLowerCase()];
+      return [String(token).toLowerCase()];
+    }
+
+    function compareValues(a, b) {
+      if (a === undefined) return -1;
+      if (b === undefined) return 1;
+      if (typeof a === "number" && typeof b === "number") return a - b;
+      return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function compareArrays(a, b) {
+      const max = Math.max(a.length, b.length);
+      for (let i = 0; i < max; i++) {
+        const result = compareValues(a[i], b[i]);
+        if (result !== 0) return result;
+      }
+      return 0;
+    }
+
+    function sortKey(callNumber) {
+      const tokens = tokenize(callNumber);
+      const key = [];
+      key.push(tokens[0] || "");
+      key.push(Number(tokens[1]));
+      let index = 2;
+      while (index < tokens.length) {
+        const c = parseCutter(tokens[index]);
+        if (!c) break;
+        key.push(c.letter, c.decimal);
+        index += 1;
+      }
+      for (; index < tokens.length; index++) {
+        key.push(...parseSuffix(tokens[index]));
+      }
+      return key;
+    }
+
+    function compareCallNumbers(a, b) {
+      return compareArrays(sortKey(a), sortKey(b));
+    }
+
+    function question(first, second, explanation) {
+      const choices = Math.random() < .5 ? [first, second] : [second, first];
+      return {
+        prompt: "Which shelves first?",
+        choices,
+        answer: choices[0] === first ? 0 : 1,
+        explanation
+      };
+    }
+
+    function classQuestion() {
+      const classes = shuffle(subclassPool).slice(0, 2).sort();
+      const a = makeLabel({ klass: classes[0] });
+      const b = makeLabel({ klass: classes[1] });
+      return question(a, b, `${classes[0]} shelves before ${classes[1]} because class letters are compared first.`);
+    }
+
+    function numberQuestion() {
+      const klass = randomClass();
+      const nums = [classNumber(), classNumber()].sort((a, b) => Number(a) - Number(b));
+      while (nums[0] === nums[1]) nums[1] = classNumber();
+      nums.sort((a, b) => Number(a) - Number(b));
+      return question(
+        makeLabel({ klass, number: nums[0] }),
+        makeLabel({ klass, number: nums[1] }),
+        `${nums[0]} is less than ${nums[1]}; compare the class number before Cutters.`
+      );
+    }
+
+    function cutterQuestion() {
+      const klass = randomClass();
+      const number = classNumber();
+      const sameLetter = Math.random() < .7;
+      let first;
+      let second;
+      if (sameLetter) {
+        const letter = pick(cutterLetters);
+        const digits = [String(randInt(2, 99)), String(randInt(100, 999))];
+        first = `.${letter}${digits[0]}`;
+        second = `.${letter}${digits[1]}`;
+      } else {
+        const letters = shuffle(cutterLetters).slice(0, 2).sort();
+        first = cutter(letters[0]);
+        second = cutter(letters[1]);
+      }
+      const ordered = [first, second].sort((a, b) => compareArrays([parseCutter(a).letter, parseCutter(a).decimal], [parseCutter(b).letter, parseCutter(b).decimal]));
+      return question(
+        makeLabel({ klass, number, cutter1: ordered[0] }),
+        makeLabel({ klass, number, cutter1: ordered[1] }),
+        `${ordered[0]} shelves before ${ordered[1]}; compare Cutter letter, then Cutter digits as a decimal.`
+      );
+    }
+
+    function complexQuestion() {
+      const klass = randomClass();
+      const number = classNumber();
+      const first = cutter();
+      const second = cutter();
+      const mode = pick(["second-cutter", "date", "volume", "copy"]);
+      if (mode === "second-cutter") {
+        const letters = shuffle(cutterLetters).slice(0, 2).sort();
+        const a = cutter(letters[0]);
+        const b = cutter(letters[1]);
+        return question(
+          makeLabel({ klass, number, cutter1: first, cutter2: a }),
+          makeLabel({ klass, number, cutter1: first, cutter2: b }),
+          `The first Cutter matches, so the second Cutter decides: ${a} shelves before ${b}.`
+        );
+      }
+      if (mode === "date") {
+        const y1 = randInt(1950, 2015);
+        const y2 = y1 + randInt(1, 10);
+        return question(
+          makeLabel({ klass, number, cutter1: first, cutter2: second, suffix: [String(y1)] }),
+          makeLabel({ klass, number, cutter1: first, cutter2: second, suffix: [String(y2)] }),
+          `${y1} shelves before ${y2} when all earlier elements match.`
+        );
+      }
+      const n1 = randInt(1, 4);
+      const n2 = n1 + randInt(1, 6);
+      const tag = mode === "copy" ? "c." : "v.";
+      return question(
+        makeLabel({ klass, number, cutter1: first, cutter2: second, suffix: ["2018", `${tag}${n1}`] }),
+        makeLabel({ klass, number, cutter1: first, cutter2: second, suffix: ["2018", `${tag}${n2}`] }),
+        `${tag}${n1} shelves before ${tag}${n2} after all earlier elements match.`
+      );
+    }
+
+    function buildQuestions(key) {
+      const factory = {
+        classes: classQuestion,
+        numbers: numberQuestion,
+        cutters: cutterQuestion,
+        complex: complexQuestion
+      }[key];
+      const questions = [];
+      const seen = new Set();
+      while (questions.length < QUESTIONS_PER_MODULE) {
+        const q = factory();
+        const id = q.choices.slice().sort().join("|");
+        if (!seen.has(id)) {
+          seen.add(id);
+          questions.push(q);
+        }
+      }
+      return questions;
+    }
+
+    function finalLabels() {
+      const labels = [
+        makeLabel({ klass: "B", number: "105", cutter1: ".A45", suffix: ["2018"] }),
+        makeLabel({ klass: "BF", number: "76.3", cutter1: ".C37", suffix: ["2020"] }),
+        makeLabel({ klass: "HD", number: "30.28", cutter1: ".M37", suffix: ["2011"] }),
+        makeLabel({ klass: "HD", number: "30.3", cutter1: ".A55", suffix: ["2008"] }),
+        makeLabel({ klass: "QA", number: "76.73", cutter1: ".J38", cutter2: ".B76", suffix: ["2021", "v.1"] }),
+        makeLabel({ klass: "QA", number: "76.73", cutter1: ".J38", cutter2: ".B76", suffix: ["2021", "v.2"] })
+      ];
+      return labels.sort(compareCallNumbers).slice(0, FINAL_COUNT);
+    }
+
+    function validateInfo() {
+      if (!els.realName.value.trim()) return "Please enter the student's real name.";
+      if (!els.preferredName.value.trim()) return "Please enter the student's preferred name.";
+      if (!/^[A-Za-z0-9._%+-]+@stonybrook\.edu$/i.test(els.email.value.trim())) {
+        return "Please enter a valid SBU email ending in @stonybrook.edu.";
+      }
+      return "";
+    }
+
+    function startGame() {
+      const message = validateInfo();
+      if (message) {
+        els.intakeFeedback.innerHTML = `<div class="feedback warn">${message}</div>`;
+        return;
+      }
+      els.intakeFeedback.innerHTML = "";
+      state = {
+        step: 0,
+        phase: "teach",
+        qIndex: 0,
+        score: 0,
+        student: {
+          realName: els.realName.value.trim(),
+          preferredName: els.preferredName.value.trim(),
+          email: els.email.value.trim().toLowerCase()
+        },
+        moduleScores: { classes: 0, numbers: 0, cutters: 0, complex: 0 },
+        questions: Object.fromEntries(modules.map(m => [m.key, buildQuestions(m.key)])),
+        finalOrder: finalLabels(),
+        finalPassed: false,
+        submitted: false
+      };
+      els.app.classList.remove("hidden");
+      render();
+    }
+
+    function updateProgress() {
+      const total = modules.length + 2;
+      const current = Math.min(state.step + 1, total);
+      els.stageLabel.textContent = state.step < modules.length ? modules[state.step].label : state.step === modules.length ? "Final Sort" : "Complete";
+      els.bar.style.width = `${(current / total) * 100}%`;
+    }
+
+    function render() {
+      if (state.step < modules.length) renderModule();
+      else if (state.step === modules.length) renderFinal();
+      else renderDone();
+      updateProgress();
+    }
+
+    function renderModule() {
+      const mod = modules[state.step];
+      if (state.phase === "teach") {
+        els.screen.innerHTML = `<h2>${mod.title}</h2><div class="lesson-box">${mod.teach}</div><button onclick="goCheck()">Continue</button>`;
+        return;
+      }
+      if (state.phase === "check") {
+        els.screen.innerHTML = `
+          <h2>${mod.title}</h2>
+          <div class="check-box">
+            <div class="section-label">Quick Check</div>
+            <p>${mod.check[0]}</p>
+            <button class="choice" onclick="checkAnswer(0)">${mod.check[1]}</button>
+            <button class="choice" onclick="checkAnswer(1)">${mod.check[2]}</button>
+            <div id="feedback"></div>
+          </div>`;
+        return;
+      }
+      if (state.phase === "worked") {
+        els.screen.innerHTML = `<h2>${mod.title}</h2><div class="worked-box"><div class="section-label">Worked Example</div>${mod.worked}</div><button onclick="goQuiz()">Start Questions</button>`;
+        return;
+      }
+      const q = state.questions[mod.key][state.qIndex];
+      els.screen.innerHTML = `
+        <h2>${mod.title}</h2>
+        <p><strong>Question ${state.qIndex + 1} of ${QUESTIONS_PER_MODULE}</strong></p>
+        <p>${q.prompt}</p>
+        <button class="choice" onclick="answerQuiz(0)">${q.choices[0]}</button>
+        <button class="choice" onclick="answerQuiz(1)">${q.choices[1]}</button>
+        <div id="feedback"></div>`;
+    }
+
+    function goCheck() { state.phase = "check"; render(); }
+    function goWorked() { state.phase = "worked"; render(); }
+    function goQuiz() { state.phase = "quiz"; render(); }
+
+    function checkAnswer(choice) {
+      const mod = modules[state.step];
+      const correct = choice === mod.check[3];
+      document.getElementById("feedback").innerHTML = `<div class="feedback ${correct ? "good" : "bad"}">${correct ? "Right." : "Not quite."} ${mod.check[4]}</div>${correct ? '<button onclick="goWorked()">Continue</button>' : ""}`;
+      if (correct) document.querySelectorAll(".choice").forEach(btn => btn.disabled = true);
+    }
+
+    function answerQuiz(choice) {
+      const mod = modules[state.step];
+      const q = state.questions[mod.key][state.qIndex];
+      const correct = choice === q.answer;
+      if (correct) {
+        state.score += 1;
+        state.moduleScores[mod.key] += 1;
+      }
+      document.getElementById("feedback").innerHTML = `<div class="feedback ${correct ? "good" : "bad"}">${correct ? "Right." : "Not quite."} ${q.explanation}</div><button onclick="nextQuestion()">Continue</button>`;
+      document.querySelectorAll(".choice").forEach(btn => btn.disabled = true);
+    }
+
+    function nextQuestion() {
+      state.qIndex += 1;
+      if (state.qIndex >= QUESTIONS_PER_MODULE) {
+        state.step += 1;
+        state.phase = "teach";
+        state.qIndex = 0;
+      }
+      render();
+    }
+
+    function makeDragItem(text, id) {
+      const el = document.createElement("div");
+      el.className = "draggable";
+      el.draggable = true;
+      el.id = id;
+      el.dataset.value = text;
+      el.textContent = text;
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-label", "Select " + text);
+      el.addEventListener("click", () => selectDragItem(el));
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectDragItem(el);
+        }
+      });
+      return el;
+    }
+
+    function makeSlot(index) {
+      const el = document.createElement("div");
+      el.className = "slot";
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      el.innerHTML = `<div class="slotlabel">Position ${index}</div>`;
+      return el;
+    }
+
+    function renderFinal() {
+      selectedDragItem = null;
+      els.screen.innerHTML = `
+        <h2>Final Sort</h2>
+        <div class="lesson-box">
+          <div class="section-label">Review</div>
+          <p>Sort from first to last. Compare class letters, class number, first Cutter, second Cutter, date, then later suffixes. Stop at the first difference.</p>
+        </div>
+        <h3>Label Bank</h3>
+        <div id="bank" class="sortbank"></div>
+        <h3>Order Slots</h3>
+        <div id="slots" class="sortslots"></div>
+        <div id="dragFeedback"></div>
+        <button onclick="checkFinal()">Check Order</button>
+        <button class="secondary" onclick="renderFinal()">Reset</button>`;
+      const bank = document.getElementById("bank");
+      const slots = document.getElementById("slots");
+      shuffle(state.finalOrder).forEach((text, index) => bank.appendChild(makeDragItem(text, "item-" + index)));
+      state.finalOrder.forEach((_, index) => slots.appendChild(makeSlot(index + 1)));
+      enableDrag();
+    }
+
+    function enableDrag() {
+      const bank = document.getElementById("bank");
+      document.querySelectorAll(".draggable").forEach(el => {
+        el.addEventListener("dragstart", e => {
+          selectedDragItem = null;
+          e.dataTransfer.setData("text/plain", el.id);
+        });
+      });
+      document.querySelectorAll(".slot").forEach(slot => {
+        slot.addEventListener("click", e => {
+          if (selectedDragItem && !e.target.closest(".draggable")) placeSelected(slot);
+        });
+        slot.addEventListener("keydown", e => {
+          if (selectedDragItem && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            placeSelected(slot);
+          }
+        });
+        slot.addEventListener("dragover", e => {
+          e.preventDefault();
+          slot.classList.add("drag-over");
+        });
+        slot.addEventListener("dragleave", () => slot.classList.remove("drag-over"));
+        slot.addEventListener("drop", e => {
+          e.preventDefault();
+          slot.classList.remove("drag-over");
+          const item = document.getElementById(e.dataTransfer.getData("text/plain"));
+          if (!item) return;
+          const existing = slot.querySelector(".draggable");
+          if (existing) bank.appendChild(existing);
+          slot.appendChild(item);
+        });
+      });
+      bank.addEventListener("dragover", e => e.preventDefault());
+      bank.addEventListener("drop", e => {
+        e.preventDefault();
+        const item = document.getElementById(e.dataTransfer.getData("text/plain"));
+        if (item) bank.appendChild(item);
+      });
+    }
+
+    function selectDragItem(el) {
+      if (selectedDragItem) selectedDragItem.classList.remove("selected");
+      selectedDragItem = selectedDragItem === el ? null : el;
+      if (selectedDragItem) selectedDragItem.classList.add("selected");
+    }
+
+    function placeSelected(target) {
+      if (!selectedDragItem) return;
+      const bank = document.getElementById("bank");
+      if (target.classList.contains("slot")) {
+        const existing = target.querySelector(".draggable");
+        if (existing) bank.appendChild(existing);
+      }
+      target.appendChild(selectedDragItem);
+      selectedDragItem.classList.remove("selected");
+      selectedDragItem = null;
+    }
+
+    function checkFinal() {
+      const chosen = Array.from(document.querySelectorAll(".slot")).map(slot => {
+        const item = slot.querySelector(".draggable");
+        return item ? item.dataset.value : "";
+      });
+      const feedback = document.getElementById("dragFeedback");
+      if (chosen.some(value => !value)) {
+        feedback.innerHTML = `<div class="feedback warn">Place every label before checking.</div>`;
+        return;
+      }
+      const ok = chosen.every((value, index) => value === state.finalOrder[index]);
+      state.finalPassed = ok;
+      feedback.innerHTML = ok
+        ? `<div class="feedback good">Right. The labels are in LC shelf order.</div><button onclick="finishGame()">Continue</button>`
+        : `<div class="feedback bad">Not quite. Keep comparing from the top line down and try again.</div>`;
+    }
+
+    function finishGame() {
+      state.step += 1;
+      render();
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function buildPayload() {
+      const module1Passed = state.moduleScores.classes >= PASSING_PER_MODULE;
+      const module2Passed = state.moduleScores.numbers >= PASSING_PER_MODULE;
+      const module3Passed = state.moduleScores.cutters >= PASSING_PER_MODULE;
+      const module4Passed = state.moduleScores.complex >= PASSING_PER_MODULE;
+      const finalPoint = state.finalPassed ? 1 : 0;
+      const totalScore = state.score + finalPoint;
+      const totalModulesPassed = [module1Passed, module2Passed, module3Passed, module4Passed].filter(Boolean).length;
+      const overallPass = module1Passed && module2Passed && module3Passed && module4Passed && state.finalPassed;
+
+      return {
+        timestamp: new Date().toISOString(),
+        realName: state.student.realName,
+        preferredName: state.student.preferredName,
+        sbuEmail: state.student.email,
+
+        module1Completed: true,
+        module1Passed: module1Passed,
+        module2Completed: true,
+        module2Passed: module2Passed,
+        module3Completed: true,
+        module3Passed: module3Passed,
+        module4Completed: true,
+        module4Passed: module4Passed,
+
+        totalModulesCompleted: 4,
+        totalModulesPassed: totalModulesPassed,
+        cumulativeCheckPassed: module1Passed && module2Passed && module3Passed && module4Passed,
+        finalDragDropPassed: state.finalPassed,
+        totalScore: totalScore,
+        passFail: overallPass ? "Pass" : "Fail",
+        attemptCount: 1
+      };
+    }
+
+    function renderDone() {
+      const payload = buildPayload();
+      const maxScore = QUESTIONS_PER_MODULE * modules.length + 1;
+      els.screen.innerHTML = `
+        <h2>Game Complete</h2>
+        <div class="summary-grid">
+          <div class="summary-box"><div class="label">Student</div><div class="value">${escapeHtml(state.student.preferredName)}</div></div>
+          <div class="summary-box"><div class="label">Email</div><div class="value">${escapeHtml(state.student.email)}</div></div>
+          <div class="summary-box"><div class="label">Score</div><div class="value">${payload.totalScore} / ${maxScore}</div></div>
+          <div class="summary-box"><div class="label">Result</div><div class="value">${payload.passFail}</div></div>
+          ${modules.map(m => `<div class="summary-box"><div class="label">${m.label}</div><div class="value">${state.moduleScores[m.key]} / ${QUESTIONS_PER_MODULE}</div></div>`).join("")}
+          <div class="summary-box"><div class="label">Final Sort</div><div class="value">${state.finalPassed ? "Passed" : "Not Passed"}</div></div>
+        </div>
+        <button id="submitBtn" onclick="submitResults()">Submit Results</button>
+        <button class="secondary" onclick="startGame()">Play Again</button>
+        <div id="submitStatus"></div>`;
+    }
+
+    async function submitResults() {
+      const status = document.getElementById("submitStatus");
+      const submitBtn = document.getElementById("submitBtn");
+      const payload = buildPayload();
+
+      if (state.submitted) {
+        status.innerHTML = `<div class="feedback good">Results already submitted for this run.</div>`;
+        return;
+      }
+
+      status.innerHTML = `<div class="feedback warn">Submitting to the SBU scoreboard and sending the grade email...</div>`;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        await fetch(APP_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        state.submitted = true;
+        status.innerHTML = `<div class="feedback good">Results sent. The Apps Script records the row in the SBU scoreboard sheet and sends the grade email.</div>`;
+      } catch (error) {
+        if (submitBtn) submitBtn.disabled = false;
+        status.innerHTML = `<div class="feedback bad">Submission failed: ${escapeHtml(error && error.message ? error.message : error)}</div>`;
+      }
+    }
+
+    els.startBtn.addEventListener("click", startGame);
+  </script>
+</body>
+</html>
